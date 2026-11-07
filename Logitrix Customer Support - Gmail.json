@@ -1,0 +1,892 @@
+{
+  "name": "Logitrix Customer Support - Gmail",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Support Tickets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $('Edit Fields').item.json.customer_name }}",
+            "Message": "={{ $('Edit Fields').item.json.message_text }}",
+            "Phone": "={{ $('Edit Fields').item.json.customer_phone }}",
+            "Timestamp": "={{ $('Edit Fields').item.json.received_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "e7a10e94-ba91-4338-a4f9-464ff3071bd9",
+      "name": "Create Support Ticket",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2528,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Edit Fields').item.json.customer_phone }}",
+        "subject": "=Re: {{ $('when message received').item.json.Subject || 'Support Request' }}",
+        "emailType": "text",
+        "message": "Thanks for reaching out. I couldn't find a confident answer, so I've opened a support ticket and a team member will follow up soon.",
+        "options": {}
+      },
+      "id": "acee793a-aef4-4c29-a788-a74f8cafbd7f",
+      "name": "Send Fallback Reply",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2752,
+        384
+      ],
+      "webhookId": "7ae4386e-cd03-4dca-8090-f8b7ca374b61"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "id": "99575387-37b7-495a-9bbc-29310b285121",
+      "name": "when message received",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "position": [
+        -624,
+        16
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.finalPrompt }}\n\n\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are [Company]’s support assistant for Black Ball Sporting Club.\n• Do NOT include any preamble such as “Based on the document you provided” or “Okay, [Name].” Just jump straight to the answer.\n* don't ever start your response with\"based on the document you provided\" , or \"According to the document\", don't mention any documents at all , also don't mention today's date unless you asked\n* don't invent account, billing, security, or technical-fix information\n"
+        }
+      },
+      "id": "8cd728a1-94e6-4157-ba7e-0283313c9e92",
+      "name": "AI Agent1",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "maxTries": 5,
+      "position": [
+        1216,
+        304
+      ],
+      "retryOnFail": false,
+      "typeVersion": 1.7,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// cleanAnswer – run once per item\nlet txt = $('AI Agent1').first().json.output || '';\n\n// 1. Remove bold / italic / strike markers\ntxt = txt.replace(/[*_~]+/g, '');\n\n// 2. Convert [Texto](https://url) → Texto https://url\ntxt = txt.replace(/\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+)\\)/g, '$1 $2');\n\n// 3. Collapse 3+ blank lines\ntxt = txt.replace(/\\n{3,}/g, '\\n\\n').trim();\n\n// 4. Remove the unwanted source-reference preamble\ntxt = txt.replace(/^.*?based on the document you provided[,:]?\\s*/i, '');\n\nreturn [{ json: { answer: txt } }];\n"
+      },
+      "id": "31a73bcf-bf0f-47ab-be34-5892f1159dc8",
+      "name": "cleanAnswer1",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2528,
+        208
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check if email arrived within 24h\nconst rawDate = $('when message received').first().json.internalDate || $('Edit Fields').first().json.received_at;\nconst lastTs = isNaN(Number(rawDate)) ? new Date(rawDate).getTime() : Number(rawDate);\nconst withinWindow = (Date.now() - lastTs) < 24 * 60 * 60 * 1000;\n\nreturn [{ json: { withinWindow, answer: $json.answer, userId: $json.userId } }];"
+      },
+      "id": "c18511e6-4a13-4a33-9ec3-894769b59514",
+      "name": "24-hour window check1",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2096,
+        304
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "d33e218e-a49a-49ed-9c6b-55b9ea0b0dbb",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.withinWindow }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d58530c4-e209-4267-aeda-6fe50ad2aee0",
+      "name": "If1",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        2304,
+        304
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Edit Fields').item.json.customer_phone }}",
+        "subject": "=Re: {{ $('when message received').item.json.Subject || 'Support Request' }}",
+        "emailType": "text",
+        "message": "={{ $json.answer }}",
+        "options": {}
+      },
+      "id": "6fb1dff4-0565-40fd-a3eb-0099b4ecf884",
+      "name": "Send AI Agent's Answer1",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        2752,
+        208
+      ],
+      "typeVersion": 2.1,
+      "webhookId": "f372f443-3a76-46de-9fda-9170537217e6"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "id": "0fa4572d-7096-499c-a1f1-bb910c9b4795",
+      "name": "Google Gemini Chat Model1",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "position": [
+        1088,
+        496
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 647899779,
+          "mode": "list",
+          "cachedResultName": "Chatlogs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit#gid=647899779"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "currentDate": "={{ $json.currentDate }}"
+          },
+          "matchingColumns": [
+            "currentDate"
+          ],
+          "schema": [
+            {
+              "id": "currentDate",
+              "displayName": "currentDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f491667e-4ac0-4bb5-8e4e-6c1784c17d65",
+      "name": "Google Sheets1",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        1872,
+        304
+      ],
+      "typeVersion": 4.6
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "228aff56-b833-4848-88d0-91a0dfabd60f",
+      "name": "Date & Time1",
+      "type": "n8n-nodes-base.dateTime",
+      "position": [
+        1648,
+        304
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Edit Fields').item.json.customer_phone }}"
+      },
+      "id": "8a5a4931-1fa3-4462-9586-fa7bce78201e",
+      "name": "Simple Memory1",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "position": [
+        1280,
+        512
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Support Tickets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.customer_name }}",
+            "Phone": "={{ $json.customer_phone }}",
+            "Message": "={{ $json.message_text }}",
+            "Timestamp": "={{ $json.received_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "22e45a9f-cd6e-4420-80f4-e3ee84e8a43f",
+      "name": "Log Escalation1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        96,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "support-agent@yourdomain.com",
+        "subject": "=New Support Ticket from {{ $json.Name }}",
+        "emailType": "text",
+        "message": "=New Support Ticket from {{ $json.Name }} ({{ $json.Phone }}):\n\"{{ $json.Message }}\"\nReceived: {{ $json.Timestamp }}",
+        "options": {}
+      },
+      "id": "d403be03-5371-4811-9b66-89e7f5f8b576",
+      "name": "Notify Agent1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        336,
+        -240
+      ],
+      "webhookId": "7ac0a243-ef90-4e31-9c46-6d9cf72df316",
+      "notes": "Sends an internal alert to the human agent's email so they know to pick up the case."
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1336371821,
+          "mode": "list",
+          "cachedResultName": "FAQ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit#gid=1336371821"
+        },
+        "options": {}
+      },
+      "id": "30416568-bc10-47f8-bd8d-48669f2cbafe",
+      "name": "Get FAQ Rows1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        96,
+        176
+      ],
+      "notes": "Reads the FAQ sheet. Expected columns: keyword, answer."
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = ($('Edit Fields').first().json.message_text || '').toLowerCase();\nconst rows = $input.all().map(i => i.json);\n\nconst match = rows.find(r => {\n  const intent = String(r['User Intent'] || '').toLowerCase();\n  return intent && (text.includes(intent) || intent.includes(text));\n});\n\nreturn [{\n  json: {\n    ...$('Edit Fields').first().json,\n    answer: match ? match['Approved AI / FAQ Response'] : ''\n  }\n}];"
+      },
+      "id": "4201a3ab-d473-4c39-8371-7dd90734f692",
+      "name": "Match FAQ1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        336,
+        176
+      ],
+      "notes": "Simple keyword match against the FAQ sheet. Returns answer='' if nothing matched."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "92a3681a-6060-4d6e-8d02-e73261235536",
+              "leftValue": "={{ $json.answer }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "627d2af6-1c73-4ed5-aa21-b21cf1250d2a",
+      "name": "If2 - FAQ Found?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        544,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Edit Fields').item.json.customer_phone }}",
+        "subject": "=Re: {{ $('when message received').item.json.Subject || 'Support Request' }}",
+        "emailType": "text",
+        "message": "={{ $json.answer }}",
+        "options": {}
+      },
+      "id": "24bc1f08-d160-493c-a2e4-72e1169741d6",
+      "name": "Send FAQ Reply1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        816,
+        96
+      ],
+      "webhookId": "3fcd9476-8468-4653-b4b6-f52dff875990"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4ac04ef3-af6b-477c-b965-f9b79a8eff14",
+              "name": "customer_phone",
+              "value": "={{ $json.from?.value?.[0]?.address || $json.From }}",
+              "type": "string"
+            },
+            {
+              "id": "00bd5596-ca82-4e8f-a15f-0008adacbe14",
+              "name": "customer_name",
+              "value": "={{ $json.from?.value?.[0]?.name || $json.From }}",
+              "type": "string"
+            },
+            {
+              "id": "a6f0a0a1-c569-4ea9-8d4a-771fd86a331f",
+              "name": "message_text",
+              "value": "={{ $json.text || $json.snippet }}",
+              "type": "string"
+            },
+            {
+              "id": "002ee0cc-f8c8-49f7-96a7-d04d8c5f16c7",
+              "name": "message_id",
+              "value": "={{ $json.id || $json.threadId }}",
+              "type": "string"
+            },
+            {
+              "id": "c5246a74-45ce-4664-a770-84707ca192dd",
+              "name": "received_at",
+              "value": "={{ $json.date ? new Date($json.date).toISOString() : new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -384,
+        16
+      ],
+      "id": "229c5b46-a1e8-4137-beec-255b88c9a691",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "291851e7-52b1-4f92-8a67-3477ba1c5832",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "human",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "3c700dfc-c809-4a4f-8b38-4e98d274798d",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "agent",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "352f4496-50f1-4e0f-9ae2-9ac33c3bf107",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "refund",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "ee686ae1-e67c-4878-afe7-91421030727b",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "urgent",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "2a5cb6e4-f9d0-4248-aab2-24baf42da017",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "billing",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "6cd4bee4-6541-4308-9432-0d8d38f92315",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "complaint",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -160,
+        16
+      ],
+      "id": "a9830981-c946-45b4-a3c6-a6612e631deb",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const googleDocs = $input.all().map((item) => item.json);\nconst body = $('Edit Fields').first().json.message_text;\n\nconst date = new Date();\nconst formattedDate = `${date.getMonth() + 1} ${date.getDate()}, ${date.getFullYear()}`;\n\nfunction extractText(doc) {\n  const content = doc?.body?.content || [];\n  let text = '';\n  for (const el of content) {\n    const elements = el.paragraph?.elements || [];\n    for (const e of elements) {\n      if (e.textRun?.content) text += e.textRun.content;\n    }\n  }\n  return text;\n}\n\nconst docText = extractText(googleDocs[0]);\n\nconst finalPrompt = `Today's date is: ${formattedDate}\\n\\n${docText}\\n\\nUser's question:\\n${body}`;\n\nreturn { finalPrompt };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        304
+      ],
+      "id": "c44e1e58-1bfd-48fb-b78d-30d0d678e77a",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Phone }}",
+        "subject": "=Re: {{ $('when message received').item.json.Subject || 'Support Request' }}",
+        "emailType": "text",
+        "message": "I'm connecting you with a member of our support team now. They'll be with you shortly.",
+        "options": {}
+      },
+      "id": "4325d4f1-8d79-4cee-a66a-f0030f2738c7",
+      "name": "Send Holding Reply",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        336,
+        -80
+      ],
+      "webhookId": "1170e0a9-9d7a-4bec-a4df-4545185e9c24"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "when message received": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Date & Time1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cleanAnswer1": {
+      "main": [
+        [
+          {
+            "node": "Send AI Agent's Answer1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "24-hour window check1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "cleanAnswer1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Support Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets1": {
+      "main": [
+        [
+          {
+            "node": "24-hour window check1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Escalation1": {
+      "main": [
+        [
+          {
+            "node": "Notify Agent1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Holding Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get FAQ Rows1": {
+      "main": [
+        [
+          {
+            "node": "Match FAQ1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match FAQ1": {
+      "main": [
+        [
+          {
+            "node": "If2 - FAQ Found?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2 - FAQ Found?1": {
+      "main": [
+        [
+          {
+            "node": "Send FAQ Reply1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Log Escalation1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get FAQ Rows1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Support Ticket": {
+      "main": [
+        [
+          {
+            "node": "Send Fallback Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "80264505-e692-4b57-b2c8-3f1e125480fa",
+  "meta": {
+    "instanceId": "6602e78ecc5afdf038b05998dc4471947d82edf62ee3f15aef614132a3cf2faa"
+  },
+  "nodeGroups": [],
+  "id": "RgMAItVKuLC5HmBX",
+  "tags": []
+}

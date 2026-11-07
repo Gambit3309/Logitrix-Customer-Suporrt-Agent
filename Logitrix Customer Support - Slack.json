@@ -1,0 +1,906 @@
+{
+  "name": "Logitrix Customer Support - Slack",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Support Tickets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $('Edit Fields').item.json.customer_name }}",
+            "Message": "={{ $('Edit Fields').item.json.message_text }}",
+            "Phone": "={{ $('Edit Fields').item.json.customer_phone }}",
+            "Timestamp": "={{ $('Edit Fields').item.json.received_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "2d117962-d025-4e78-bf28-05c36b6efb46",
+      "name": "Create Support Ticket",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2672,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Edit Fields').item.json.customer_phone }}",
+          "mode": "id"
+        },
+        "text": "Thanks for reaching out. I couldn't find a confident answer, so I've opened a support ticket and a team member will follow up soon.",
+        "otherOptions": {}
+      },
+      "id": "2fe732b5-ae85-463b-bfde-88ee27fe20cb",
+      "name": "Send Fallback Reply",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        2896,
+        480
+      ],
+      "webhookId": "a801d756-54a8-4d1f-b678-d20de4d6ea03"
+    },
+    {
+      "parameters": {
+        "trigger": [
+          "message"
+        ],
+        "watchWorkspace": true,
+        "options": {}
+      },
+      "id": "f853bcbc-8ea7-4b00-88ea-6072c671fdb4",
+      "name": "when message received",
+      "type": "n8n-nodes-base.slackTrigger",
+      "position": [
+        -464,
+        112
+      ],
+      "webhookId": "6b645b70-61db-4d4d-af47-2f39295cf196",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.finalPrompt }}\n\n\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are [Company]’s support assistant for Black Ball Sporting Club.\n• Do NOT include any preamble such as “Based on the document you provided” or “Okay, [Name].” Just jump straight to the answer.\n* don't ever start your response with\"based on the document you provided\" , or \"According to the document\", don't mention any documents at all , also don't mention today's date unless you asked\n* don't invent account, billing, security, or technical-fix information\n"
+        }
+      },
+      "id": "3da700cf-bae1-4dfe-8273-9a1266a9fa9f",
+      "name": "AI Agent1",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "maxTries": 5,
+      "position": [
+        1360,
+        400
+      ],
+      "retryOnFail": false,
+      "typeVersion": 1.7,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// cleanAnswer – run once per item\nlet txt = $('AI Agent1').first().json.output || '';\n\n// 1. Remove bold / italic / strike markers\ntxt = txt.replace(/[*_~]+/g, '');\n\n// 2. Convert [Texto](https://url) → Texto https://url\ntxt = txt.replace(/\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+)\\)/g, '$1 $2');\n\n// 3. Collapse 3+ blank lines\ntxt = txt.replace(/\\n{3,}/g, '\\n\\n').trim();\n\n// 4. Remove the unwanted source-reference preamble\ntxt = txt.replace(/^.*?based on the document you provided[,:]?\\s*/i, '');\n\nreturn [{ json: { answer: txt } }];\n"
+      },
+      "id": "e4e54055-28f0-4e46-b606-9023a4fc930e",
+      "name": "cleanAnswer1",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2672,
+        304
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Slack ts arrives as seconds.microseconds since epoch\nconst lastTs = parseFloat($('when message received').first().json.ts || (Date.now() / 1000)) * 1000;\nconst withinWindow = (Date.now() - lastTs) < 24 * 60 * 60 * 1000;\n\nreturn [{ json: { withinWindow, answer: $json.answer, userId: $json.userId } }];"
+      },
+      "id": "9be55d2a-93b7-4e8f-82e0-cd43063f5b6f",
+      "name": "24-hour window check1",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2240,
+        400
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "d33e218e-a49a-49ed-9c6b-55b9ea0b0dbb",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.withinWindow }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0719ff92-3042-4801-ad05-58bbd0dc5d70",
+      "name": "If1",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        2448,
+        400
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Edit Fields').item.json.customer_phone }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.answer }}",
+        "otherOptions": {}
+      },
+      "id": "a801021b-a18d-4a5b-9782-f7042161f0ee",
+      "name": "Send AI Agent's Answer1",
+      "type": "n8n-nodes-base.slack",
+      "position": [
+        2896,
+        304
+      ],
+      "typeVersion": 2.2,
+      "webhookId": "33527eae-5ea8-4bb9-bde7-772e871c4644"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "id": "abe8fb3b-34f1-4a06-ac02-9311463e1b84",
+      "name": "Google Gemini Chat Model1",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "position": [
+        1232,
+        592
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 647899779,
+          "mode": "list",
+          "cachedResultName": "Chatlogs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit#gid=647899779"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "currentDate": "={{ $json.currentDate }}"
+          },
+          "matchingColumns": [
+            "currentDate"
+          ],
+          "schema": [
+            {
+              "id": "currentDate",
+              "displayName": "currentDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "ffa74c1f-d1c1-46b2-8248-0a2c04a9f07c",
+      "name": "Google Sheets1",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        2016,
+        400
+      ],
+      "typeVersion": 4.6
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "f4b4317e-8175-4719-8727-76ae18c6661a",
+      "name": "Date & Time1",
+      "type": "n8n-nodes-base.dateTime",
+      "position": [
+        1792,
+        400
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Edit Fields').item.json.customer_phone }}"
+      },
+      "id": "21382432-1f7f-4220-95d2-4f730b94387e",
+      "name": "Simple Memory1",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "position": [
+        1424,
+        608
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Support Tickets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.customer_name }}",
+            "Phone": "={{ $json.customer_phone }}",
+            "Message": "={{ $json.message_text }}",
+            "Timestamp": "={{ $json.received_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "9cf048ef-8684-4a96-9872-2adcf3234160",
+      "name": "Log Escalation1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        240,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_AGENT_SLACK_CHANNEL_ID",
+          "mode": "id"
+        },
+        "text": "=New Support Ticket from <@{{ $json.Name }}> (Channel: {{ $json.Phone }}):\n\"{{ $json.Message }}\"\nReceived: {{ $json.Timestamp }}",
+        "otherOptions": {}
+      },
+      "id": "14ee4fe7-b681-40f5-9495-239c2af73ee7",
+      "name": "Notify Agent1",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        -128
+      ],
+      "webhookId": "de39de50-a93f-4e58-ac4a-9bdca88afd80",
+      "notes": "Sends an internal alert to the human agent's Slack channel so they know to pick up the case."
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1336371821,
+          "mode": "list",
+          "cachedResultName": "FAQ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit#gid=1336371821"
+        },
+        "options": {}
+      },
+      "id": "c6a165fa-e279-4ce9-9469-f27e32bfe1c5",
+      "name": "Get FAQ Rows1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        240,
+        272
+      ],
+      "notes": "Reads the FAQ sheet. Expected columns: keyword, answer."
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = ($('Edit Fields').first().json.message_text || '').toLowerCase();\nconst rows = $input.all().map(i => i.json);\n\nconst match = rows.find(r => {\n  const intent = String(r['User Intent'] || '').toLowerCase();\n  return intent && (text.includes(intent) || intent.includes(text));\n});\n\nreturn [{\n  json: {\n    ...$('Edit Fields').first().json,\n    answer: match ? match['Approved AI / FAQ Response'] : ''\n  }\n}];"
+      },
+      "id": "b068d432-c241-409e-bb38-0155d29754cf",
+      "name": "Match FAQ1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        272
+      ],
+      "notes": "Simple keyword match against the FAQ sheet. Returns answer='' if nothing matched."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "92a3681a-6060-4d6e-8d02-e73261235536",
+              "leftValue": "={{ $json.answer }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4e40094d-1d67-4d79-b92f-eba23e2d1b32",
+      "name": "If2 - FAQ Found?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        688,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Edit Fields').item.json.customer_phone }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.answer }}",
+        "otherOptions": {}
+      },
+      "id": "2c542ad6-3858-4e62-8bb3-7865abf70d8e",
+      "name": "Send FAQ Reply1",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        192
+      ],
+      "webhookId": "78f8373a-04de-4221-962e-ae0d3d263696"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4ac04ef3-af6b-477c-b965-f9b79a8eff14",
+              "name": "customer_phone",
+              "value": "={{ $json.channel }}",
+              "type": "string"
+            },
+            {
+              "id": "00bd5596-ca82-4e8f-a15f-0008adacbe14",
+              "name": "customer_name",
+              "value": "={{ $json.user }}",
+              "type": "string"
+            },
+            {
+              "id": "a6f0a0a1-c569-4ea9-8d4a-771fd86a331f",
+              "name": "message_text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "002ee0cc-f8c8-49f7-96a7-d04d8c5f16c7",
+              "name": "message_id",
+              "value": "={{ $json.ts }}",
+              "type": "string"
+            },
+            {
+              "id": "c5246a74-45ce-4664-a770-84707ca192dd",
+              "name": "received_at",
+              "value": "={{ $json.ts ? new Date(parseFloat($json.ts) * 1000).toISOString() : new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -224,
+        112
+      ],
+      "id": "1108c2ec-b088-445c-ac64-70823a3b3337",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "291851e7-52b1-4f92-8a67-3477ba1c5832",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "human",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "3c700dfc-c809-4a4f-8b38-4e98d274798d",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "agent",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "352f4496-50f1-4e0f-9ae2-9ac33c3bf107",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "refund",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "ee686ae1-e67c-4878-afe7-91421030727b",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "urgent",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "2a5cb6e4-f9d0-4248-aab2-24baf42da017",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "billing",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "6cd4bee4-6541-4308-9432-0d8d38f92315",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "complaint",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        112
+      ],
+      "id": "f62aa639-dd8a-44ce-b374-f1e019a8366c",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const googleDocs = $input.all().map((item) => item.json);\nconst body = $('Edit Fields').first().json.message_text;\n\nconst date = new Date();\nconst formattedDate = `${date.getMonth() + 1} ${date.getDate()}, ${date.getFullYear()}`;\n\nfunction extractText(doc) {\n  const content = doc?.body?.content || [];\n  let text = '';\n  for (const el of content) {\n    const elements = el.paragraph?.elements || [];\n    for (const e of elements) {\n      if (e.textRun?.content) text += e.textRun.content;\n    }\n  }\n  return text;\n}\n\nconst docText = extractText(googleDocs[0]);\n\nconst finalPrompt = `Today's date is: ${formattedDate}\\n\\n${docText}\\n\\nUser's question:\\n${body}`;\n\nreturn { finalPrompt };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        400
+      ],
+      "id": "3ba6c401-5974-4a31-bccb-d57444059015",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.Phone }}",
+          "mode": "id"
+        },
+        "text": "I'm connecting you with a member of our support team now. They'll be with you shortly.",
+        "otherOptions": {}
+      },
+      "id": "32b7f1bb-5cb0-4e2f-a6f9-9c2cd108e49d",
+      "name": "Send Holding Reply",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        32
+      ],
+      "webhookId": "e03d22cb-0915-44b6-876c-a58c32c87741"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "when message received": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Date & Time1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cleanAnswer1": {
+      "main": [
+        [
+          {
+            "node": "Send AI Agent's Answer1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "24-hour window check1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "cleanAnswer1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Support Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets1": {
+      "main": [
+        [
+          {
+            "node": "24-hour window check1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Escalation1": {
+      "main": [
+        [
+          {
+            "node": "Notify Agent1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Holding Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get FAQ Rows1": {
+      "main": [
+        [
+          {
+            "node": "Match FAQ1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match FAQ1": {
+      "main": [
+        [
+          {
+            "node": "If2 - FAQ Found?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2 - FAQ Found?1": {
+      "main": [
+        [
+          {
+            "node": "Send FAQ Reply1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Log Escalation1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get FAQ Rows1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Support Ticket": {
+      "main": [
+        [
+          {
+            "node": "Send Fallback Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "bca5b559-3ec3-451f-bdcb-778edd6194ef",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6602e78ecc5afdf038b05998dc4471947d82edf62ee3f15aef614132a3cf2faa"
+  },
+  "nodeGroups": [],
+  "id": "jW6fruoCxg9Tf05L",
+  "tags": []
+}

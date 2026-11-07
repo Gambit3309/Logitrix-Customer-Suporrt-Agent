@@ -1,0 +1,955 @@
+{
+  "name": "Logitrix Customer Support",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Support Tickets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $('when message received').item.json.contacts[0].profile.name }}",
+            "Message": "={{ $('when message received').item.json.messages[0].text.body }}",
+            "Phone": "={{ $('when message received').item.json.messages[0].from }}",
+            "Timestamp": "={{ $('Edit Fields').item.json.received_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "9e5d7dca-5a27-4f8f-b43e-73ae88b6b6a6",
+      "name": "Create Support Ticket",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1200,
+        3072
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QrFa2hoFdySmui5O",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "1173310695876321",
+        "recipientPhoneNumber": "={{ $('when message received').item.json.messages[0].from }}",
+        "textBody": "=Thanks for reaching out. I couldn't find a confident answer, so I've opened a support ticket and a team member will follow up soon.",
+        "additionalFields": {}
+      },
+      "id": "f20e9005-172a-4725-ac4a-20a4e2236fab",
+      "name": "Send Fallback Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        3072
+      ],
+      "webhookId": "458ca0d0-7d28-4232-8f87-81922ac695d0",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rhNjEBrPvpVXFgRt",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "0b91c330-c013-4b89-928f-2e3604fdbab0",
+      "name": "when message received",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "position": [
+        -1936,
+        2704
+      ],
+      "webhookId": "6b645b70-61db-4d4d-af47-2f39295cf196",
+      "typeVersion": 1,
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "DZeZE3zUqLpmb20o",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.finalPrompt }}\n\n\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are [Company]’s support assistant for Black Ball Sporting Club.\n• Do NOT include any preamble such as “Based on the document you provided” or “Okay, [Name].” Just jump straight to the answer.\n* don't ever start your response with\"based on the document you provided\" , or \"According to the document\", don't mention any documents at all , also don't mention today's date unless you asked\n* don't invent account, billing, security, or technical-fix information\n"
+        }
+      },
+      "id": "1f53d136-607a-4e0f-90b4-2e44b7819d40",
+      "name": "AI Agent1",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "maxTries": 5,
+      "position": [
+        -112,
+        2992
+      ],
+      "retryOnFail": false,
+      "typeVersion": 1.7,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// cleanAnswer – run once per item\nlet txt = $('AI Agent1').first().json.output || '';\n\n// 1. Remove bold / italic / strike markers\ntxt = txt.replace(/[*_~]+/g, '');\n\n// 2. Convert [Texto](https://url) → Texto https://url\ntxt = txt.replace(/\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+)\\)/g, '$1 $2');\n\n// 3. Collapse 3+ blank lines\ntxt = txt.replace(/\\n{3,}/g, '\\n\\n').trim();\n\n// 4. Remove the unwanted source-reference preamble\ntxt = txt.replace(/^.*?based on the document you provided[,:]?\\s*/i, '');\n\nreturn [{ json: { answer: txt } }];\n"
+      },
+      "id": "c5aba473-34e7-46da-9c47-807c6970581b",
+      "name": "cleanAnswer1",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1200,
+        2896
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// within24h?  – run once per item\n// Meta (WhatsApp) timestamp arrives as seconds since epoch\nconst lastTs = Number($('when message received').first().json.messages[0].timestamp) * 1000;   // → ms\nconst withinWindow = Date.now() - lastTs < 24 * 60 * 60 * 1000;\n\nreturn [{ json: { withinWindow, answer: $json.answer, userId: $json.userId } }];"
+      },
+      "id": "89f61629-866d-439d-95a0-ac5316d1be03",
+      "name": "24-hour window check1",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        768,
+        2992
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "d33e218e-a49a-49ed-9c6b-55b9ea0b0dbb",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.withinWindow }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "31be3e49-2686-4502-955f-d29a133765e5",
+      "name": "If1",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        976,
+        2992
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "1173310695876321",
+        "recipientPhoneNumber": "={{ $('when message received').item.json.contacts[0].wa_id }}",
+        "textBody": "={{ $json.answer }}",
+        "additionalFields": {}
+      },
+      "id": "a8c5fd48-cd37-48d8-b380-5b63a4bacc64",
+      "name": "Send AI Agent's Answer1",
+      "type": "n8n-nodes-base.whatsApp",
+      "position": [
+        1424,
+        2896
+      ],
+      "webhookId": "8da6eeda-31ec-448a-9d75-2d5dbc5f10f9",
+      "typeVersion": 1,
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rhNjEBrPvpVXFgRt",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "id": "2997b7f2-998c-4f14-991c-b16452c4a60c",
+      "name": "Google Gemini Chat Model1",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "position": [
+        -240,
+        3184
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "uKhxiHlraevF5Nua",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 647899779,
+          "mode": "list",
+          "cachedResultName": "Chatlogs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit#gid=647899779"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "currentDate": "={{ $json.currentDate }}"
+          },
+          "matchingColumns": [
+            "currentDate"
+          ],
+          "schema": [
+            {
+              "id": "currentDate",
+              "displayName": "currentDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "db315413-0153-412f-9287-8c63eb04a350",
+      "name": "Google Sheets1",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        544,
+        2992
+      ],
+      "typeVersion": 4.6,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QrFa2hoFdySmui5O",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "134e2700-91cc-4e23-9bf0-06db10454748",
+      "name": "Date & Time1",
+      "type": "n8n-nodes-base.dateTime",
+      "position": [
+        320,
+        2992
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('when message received').item.json.contacts[0].wa_id }}"
+      },
+      "id": "bda92f3e-1da9-40fe-acaa-dd56398d570d",
+      "name": "Simple Memory1",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "position": [
+        -48,
+        3200
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Support Tickets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.customer_name }}",
+            "Phone": "={{ $json.customer_phone }}",
+            "Message": "={{ $json.message_text }}",
+            "Timestamp": "={{ $json.received_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "274e4f8a-16f2-44c8-97f9-10bef49f3a2d",
+      "name": "Log Escalation1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -1232,
+        2560
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QrFa2hoFdySmui5O",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "1173310695876321",
+        "recipientPhoneNumber": "=+923184525136",
+        "textBody": "=New Support Ticket from {{ $json.Name }} ({{ $json.Phone }}):\n\"{{ $json.Message }}\"\nReceived: {{ $json.Timestamp }}",
+        "additionalFields": {}
+      },
+      "id": "49bc5971-2b02-485e-a550-00ca6b5d9f18",
+      "name": "Notify Agent1",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        -992,
+        2464
+      ],
+      "webhookId": "abdbe24b-5310-4e05-a781-d91b357912a2",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rhNjEBrPvpVXFgRt",
+          "name": "WhatsApp account"
+        }
+      },
+      "notes": "Sends an internal alert to the human agent's WhatsApp number so they know to pick up the case."
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI",
+          "mode": "list",
+          "cachedResultName": "Customer Support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1336371821,
+          "mode": "list",
+          "cachedResultName": "FAQ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qPdssI2kr4NXtpUg4y4LIluWlkR2_dzhTI465MjZZZI/edit#gid=1336371821"
+        },
+        "options": {}
+      },
+      "id": "3614c985-d12c-46ae-84d9-6106fb4f3c7c",
+      "name": "Get FAQ Rows1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -1232,
+        2864
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QrFa2hoFdySmui5O",
+          "name": "Google Sheets account"
+        }
+      },
+      "notes": "Reads the FAQ sheet. Expected columns: keyword, answer."
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = ($('Edit Fields').first().json.message_text || '').toLowerCase();\nconst rows = $input.all().map(i => i.json);\n\nconst match = rows.find(r => {\n  const intent = String(r['User Intent'] || '').toLowerCase();\n  return intent && (text.includes(intent) || intent.includes(text));\n});\n\nreturn [{\n  json: {\n    ...$('Edit Fields').first().json,\n    answer: match ? match['Approved AI / FAQ Response'] : ''\n  }\n}];"
+      },
+      "id": "178ddb11-2f1d-440a-a0b1-52c22176d021",
+      "name": "Match FAQ1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -992,
+        2864
+      ],
+      "notes": "Simple keyword match against the FAQ sheet. Returns answer='' if nothing matched."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "92a3681a-6060-4d6e-8d02-e73261235536",
+              "leftValue": "={{ $json.answer }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a87f41bc-fb7f-4ee7-ba29-e59e71611524",
+      "name": "If2 - FAQ Found?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -784,
+        2864
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "1173310695876321",
+        "recipientPhoneNumber": "={{ $('when message received').item.json.messages[0].from }}",
+        "textBody": "={{ $json.answer }}",
+        "additionalFields": {}
+      },
+      "id": "5898d894-b583-4bb4-991b-e66e13a74618",
+      "name": "Send FAQ Reply1",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        2784
+      ],
+      "webhookId": "b123ec41-2a5d-4578-a41e-eebf1c694e00",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rhNjEBrPvpVXFgRt",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4ac04ef3-af6b-477c-b965-f9b79a8eff14",
+              "name": "customer_phone",
+              "value": "={{ $json.messages[0].from }}",
+              "type": "string"
+            },
+            {
+              "id": "00bd5596-ca82-4e8f-a15f-0008adacbe14",
+              "name": "customer_name",
+              "value": "={{ $json.contacts[0].profile.name }}",
+              "type": "string"
+            },
+            {
+              "id": "a6f0a0a1-c569-4ea9-8d4a-771fd86a331f",
+              "name": "message_text",
+              "value": "={{ $json.messages[0].text.body }}",
+              "type": "string"
+            },
+            {
+              "id": "002ee0cc-f8c8-49f7-96a7-d04d8c5f16c7",
+              "name": "message_id",
+              "value": "={{ $json.messages[0].from_user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "c5246a74-45ce-4664-a770-84707ca192dd",
+              "name": "received_at",
+              "value": "={{ DateTime.fromSeconds(Number($json.messages[0].timestamp)).toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -1696,
+        2704
+      ],
+      "id": "ceb3089f-4a37-4fd2-9269-287e945ca6e3",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "291851e7-52b1-4f92-8a67-3477ba1c5832",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "human",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "3c700dfc-c809-4a4f-8b38-4e98d274798d",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "agent",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "352f4496-50f1-4e0f-9ae2-9ac33c3bf107",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "refund",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "ee686ae1-e67c-4878-afe7-91421030727b",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "urgent",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "2a5cb6e4-f9d0-4248-aab2-24baf42da017",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "billing",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "6cd4bee4-6541-4308-9432-0d8d38f92315",
+              "leftValue": "={{ $json.message_text }}",
+              "rightValue": "complaint",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1472,
+        2704
+      ],
+      "id": "7ea36629-1e14-4002-800c-cd2bb9214c51",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const googleDocs = $input.all().map((item) => item.json);\nconst whatsappMessages = $(\"when message received\").all().map((item) => item.json);\n\nconst date = new Date();\nconst formattedDate = `${date.getMonth() + 1} ${date.getDate()}, ${date.getFullYear()}`;\n\nfunction extractText(doc) {\n  const content = doc?.body?.content || [];\n  let text = '';\n  for (const el of content) {\n    const elements = el.paragraph?.elements || [];\n    for (const e of elements) {\n      if (e.textRun?.content) text += e.textRun.content;\n    }\n  }\n  return text;\n}\n\nconst docText = extractText(googleDocs[0]);\nconst body = whatsappMessages[0].messages[0].text.body;\n\nconst finalPrompt = `Today's date is: ${formattedDate}\\n\\n${docText}\\n\\nUser's question:\\n${body}`;\n\nreturn { finalPrompt };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        2992
+      ],
+      "id": "1b830748-cfd3-46d7-9f73-bfa09e10e9e5",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "1173310695876321",
+        "recipientPhoneNumber": "={{ $json.Phone }}",
+        "textBody": "=I'm connecting you with a member of our support team now. They'll be with you shortly.",
+        "additionalFields": {}
+      },
+      "id": "cc7d015d-dddb-4726-8d9f-8625da28cb9b",
+      "name": "Send Holding Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        -992,
+        2624
+      ],
+      "webhookId": "9807873c-366f-46fb-ba2e-30220e1eccfe",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rhNjEBrPvpVXFgRt",
+          "name": "WhatsApp account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "when message received": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Date & Time1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cleanAnswer1": {
+      "main": [
+        [
+          {
+            "node": "Send AI Agent's Answer1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "24-hour window check1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "cleanAnswer1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Support Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets1": {
+      "main": [
+        [
+          {
+            "node": "24-hour window check1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Escalation1": {
+      "main": [
+        [
+          {
+            "node": "Notify Agent1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Holding Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get FAQ Rows1": {
+      "main": [
+        [
+          {
+            "node": "Match FAQ1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match FAQ1": {
+      "main": [
+        [
+          {
+            "node": "If2 - FAQ Found?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2 - FAQ Found?1": {
+      "main": [
+        [
+          {
+            "node": "Send FAQ Reply1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Log Escalation1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get FAQ Rows1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Support Ticket": {
+      "main": [
+        [
+          {
+            "node": "Send Fallback Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "6d81d1db-ee1f-4fcf-ad89-5ffd5346238d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0b923065d26738fc157204500e1c7bba86b3cd3f88695d6c91baa057992b4985"
+  },
+  "nodeGroups": [],
+  "id": "l7cM8dTnRpJuBzbt",
+  "tags": []
+}
